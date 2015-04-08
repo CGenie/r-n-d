@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/print.css" media="print">
+
+    <title>How to make asynchronous calls</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>R-n-d</h1>
+        <h2>Various R&amp;D stuff</h2>
+
+          <!--
+        <section id="downloads">
+          <a href="https://github.com/CGenie/r-n-d/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/CGenie/r-n-d/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/CGenie/r-n-d" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+          -->
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+
+          <h1 id="how-to-make-asynchronous-calls">How to make asynchronous calls</h1>
+
+<p>Basically asynchronous calls can be done in 2 ways: with or without a broker.</p>
+
+<p><em>Pros</em> of a broker is that our workers can fail/die and we can still pass the failed message to some other worker.</p>
+
+<p><em>Cons</em> of a broker is that we have an additional point of failure in the architecture.</p>
+
+<h2 id="with-broker">With broker</h2>
+
+<p>For quite a big list of queueing systems see <a href="http://queues.io">http://queues.io/</a>.</p>
+
+<h3 id="celery-projecthttpwwwceleryprojectorg"><a href="http://www.celeryproject.org">Celery project</a></h3>
+
+<p><a href="http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html">List of stable brokers</a>:</p>
+
+<ul>
+  <li>RabbitMQ</li>
+  <li>Redis</li>
+  <li>MongoDB (experimental but has monitoring &amp; remote control)</li>
+</ul>
+
+<p><a href="http://docs.celeryproject.org/en/latest/userguide/tasks.html#basics">Sample code</a></p>
+
+<p>Also has some goodies like:</p>
+
+<ul>
+  <li><a href="http://celery.readthedocs.org/en/latest/userguide/periodic-tasks.html">periodic scheduler</a></li>
+  <li><a href="http://celery.readthedocs.org/en/latest/userguide/remote-tasks.html">webhooks</a></li>
+  <li><a href="http://celery.readthedocs.org/en/latest/userguide/canvas.html">complex workflows</a></li>
+  <li><a href="http://celery.readthedocs.org/en/latest/userguide/monitoring.html">monitoring</a></li>
+</ul>
+
+<p>And it’s <a href="http://celery.readthedocs.org/en/latest/userguide/extending.html">customizable</a></p>
+
+<p>Note that the webhook mechanism allows for <a href="https://github.com/celery/celery/tree/master/examples/celery_http_gateway/">blocking and non-blocking calls</a>:</p>
+
+<p><code>
+$ curl http://localhost:8000/apply/celery.ping/
+{"ok": "true", "task_id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}
+$ curl http://localhost:8000/e3a95109-afcd-4e54-a341-16c18fddf64b/status/
+{"task": {"status": "SUCCESS", "result": "pong", "id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}}
+</code></p>
+
+<h3 id="uwsgi-spoolerhttpsuwsgi-docsreadthedocsorgenlatestspoolerhtml"><a href="https://uwsgi-docs.readthedocs.org/en/latest/Spooler.html">uWSGI Spooler</a></h3>
+
+<p>This is a simple task executor with queue. Tasks are represented as files in some directory so this directory is our “broker”.</p>
+
+<h3 id="natshttpnatsio"><a href="http://nats.io">NATS</a></h3>
+
+<p>A simple, high-performance messaging platform implementing publish-subscribe mechanism.
+Clustering <a href="http://nats.io/docs/#gnatsd_configuration">is supported</a>.</p>
+
+<h3 id="taskmasterhttpsgithubcomdcramertaskmaster"><a href="https://github.com/dcramer/taskmaster">Taskmaster</a></h3>
+
+<p>“<em>Taskmaster is a simple distributed queue designed for handling large numbers of one-off tasks.</em>”
+This is supposed to be a simpler and high-performance alternative to Celery.</p>
+
+<h3 id="redis-pubsub-mechanismhttpredisiotopicspubsub"><a href="http://redis.io/topics/pubsub">Redis PUB/SUB mechanism</a></h3>
+
+<p><a href="https://gist.github.com/jobliz/2596594">A simple example</a></p>
+
+<p>Also some messaging systems are built around it like <a href="http://resquework.org/">Resque</a>,
+<a href="http://restmq.com/">RestMQ</a>, <a href="http://python-rq.org/">RQ</a>.</p>
+
+<h3 id="apache-samzahttpsamzaapacheorg"><a href="http://samza.apache.org/">Apache Samza</a></h3>
+
+<p>Basically it is a database system with a pub/sub mechanism.
+Here’s a <a href="http://blog.confluent.io/2015/03/04/turning-the-database-inside-out-with-apache-samza/">very good explanation</a></p>
+
+<h2 id="without-broker">Without broker</h2>
+
+<h3 id="reactivexhttpreactivexio"><a href="http://reactivex.io/">ReactiveX</a></h3>
+
+<p>This is an implementation of Observer pattern on steroids.</p>
+
+<p><a href="https://github.com/ReactiveX/RxPY/tree/master/examples">Examples of use in Python</a></p>
+
+<p><a href="https://gist.github.com/staltz/868e7e9bc2a7b8c1f754">More about reactive programming</a></p>
+
+<h3 id="python-3-futureshttpsdocspythonorg3libraryconcurrentfutureshtml"><a href="https://docs.python.org/3/library/concurrent.futures.html">Python 3 Futures</a></h3>
+
+<p>Part of Python 3 standard library (<a href="https://docs.python.org/3/library/asyncio.html">asyncio</a>).</p>
+
+<h3 id="tornado-webserverhttpwwwtornadoweborg"><a href="http://www.tornadoweb.org">Tornado Webserver</a></h3>
+
+<p><a href="http://www.tornadoweb.org/en/stable/coroutine.html">It has some support for concurrency</a> (with own Futures mechanism).</p>
+
+
+
+      </section>
+    </div>
+
+    
+  </body>
+</html>
