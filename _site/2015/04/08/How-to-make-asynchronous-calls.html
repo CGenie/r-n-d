@@ -43,7 +43,7 @@
 
 <p>For quite a big list of queueing systems see <a href="http://queues.io">http://queues.io/</a>.</p>
 
-<h3 id="celery-projecthttpwwwceleryprojectorg"><a href="http://www.celeryproject.org">Celery project</a></h3>
+<h3 id="celery-project-linkhttpwwwceleryprojectorg">Celery project (<a href="http://www.celeryproject.org">link</a>)</h3>
 
 <p><a href="http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html">List of stable brokers</a>:</p>
 
@@ -68,42 +68,73 @@
 
 <p>Note that the webhook mechanism allows for <a href="https://github.com/celery/celery/tree/master/examples/celery_http_gateway/">blocking and non-blocking calls</a>:</p>
 
-<p><code>
-$ curl http://localhost:8000/apply/celery.ping/
-{"ok": "true", "task_id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}
-$ curl http://localhost:8000/e3a95109-afcd-4e54-a341-16c18fddf64b/status/
-{"task": {"status": "SUCCESS", "result": "pong", "id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}}
-</code></p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>curl http://localhost:8000/apply/celery.ping/
+<span class="o">{</span><span class="s2">&quot;ok&quot;</span>: <span class="s2">&quot;true&quot;</span>, <span class="s2">&quot;task_id&quot;</span>: <span class="s2">&quot;e3a95109-afcd-4e54-a341-16c18fddf64b&quot;</span><span class="o">}</span>
+<span class="nv">$ </span>curl http://localhost:8000/e3a95109-afcd-4e54-a341-16c18fddf64b/status/
+<span class="o">{</span><span class="s2">&quot;task&quot;</span>: <span class="o">{</span><span class="s2">&quot;status&quot;</span>: <span class="s2">&quot;SUCCESS&quot;</span>, <span class="s2">&quot;result&quot;</span>: <span class="s2">&quot;pong&quot;</span>, <span class="s2">&quot;id&quot;</span>: <span class="s2">&quot;e3a95109-afcd-4e54-a341-16c18fddf64b&quot;</span><span class="o">}}</span></code></pre></div>
 
-<h3 id="uwsgi-spoolerhttpsuwsgi-docsreadthedocsorgenlatestspoolerhtml"><a href="https://uwsgi-docs.readthedocs.org/en/latest/Spooler.html">uWSGI Spooler</a></h3>
+<h4 id="sample-workflow">Sample workflow</h4>
+
+<p><code>requirements.txt</code>:
+‘’’
+celery==3.1.17
+SQLAlchemy==0.9.9
+‘’’</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="c"># tasks.py</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> <span class="n">app</span> <span class="o">=</span> <span class="n">Celery</span><span class="p">(</span><span class="s">&#39;tasks&#39;</span><span class="p">,</span>
+<span class="lineno"> 6</span>              <span class="n">broker</span><span class="o">=</span><span class="s">&#39;sqla+sqlite:///celery.sqlite&#39;</span><span class="p">,</span>
+<span class="lineno"> 7</span>              <span class="n">backend</span><span class="o">=</span><span class="s">&#39;db+sqlite:///celery-results.sqlite&#39;</span><span class="p">)</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="nd">@app.task</span>
+<span class="lineno">10</span> <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="lineno">11</span>     <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span></code></pre></div>
+
+<p>Run the worker service:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>celery -A tasks worker --loglevel<span class="o">=</span>info</code></pre></div>
+
+<p>To execute tasks:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="c"># Asynchronous call (returns AsyncTask object)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c"># &lt;AsyncResult xxx&gt;</span>
+<span class="c"># Fetch the result</span>
+<span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>              <span class="c"># 5</span>
+<span class="c"># Synchronous call (returns result of the task)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>    <span class="c"># 5</span></code></pre></div>
+
+<h3 id="uwsgi-spooler-linkhttpsuwsgi-docsreadthedocsorgenlatestspoolerhtml">uWSGI Spooler (<a href="https://uwsgi-docs.readthedocs.org/en/latest/Spooler.html">link</a>)</h3>
 
 <p>This is a simple task executor with queue. Tasks are represented as files in some directory so this directory is our “broker”.</p>
 
-<h3 id="natshttpnatsio"><a href="http://nats.io">NATS</a></h3>
+<h3 id="nats-linkhttpnatsio">NATS (<a href="http://nats.io">link</a>)</h3>
 
 <p>A simple, high-performance messaging platform implementing publish-subscribe mechanism.
 Clustering <a href="http://nats.io/docs/#gnatsd_configuration">is supported</a>.</p>
 
-<h3 id="taskmasterhttpsgithubcomdcramertaskmaster"><a href="https://github.com/dcramer/taskmaster">Taskmaster</a></h3>
+<h3 id="taskmaster-linkhttpsgithubcomdcramertaskmaster">Taskmaster (<a href="https://github.com/dcramer/taskmaster">link</a>)</h3>
 
 <p>“<em>Taskmaster is a simple distributed queue designed for handling large numbers of one-off tasks.</em>”
 This is supposed to be a simpler and high-performance alternative to Celery.</p>
 
-<h3 id="redis-pubsub-mechanismhttpredisiotopicspubsub"><a href="http://redis.io/topics/pubsub">Redis PUB/SUB mechanism</a></h3>
+<h3 id="redis-pubsub-mechanism-linkhttpredisiotopicspubsub">Redis PUB/SUB mechanism (<a href="http://redis.io/topics/pubsub">link</a>)</h3>
 
 <p><a href="https://gist.github.com/jobliz/2596594">A simple example</a></p>
 
 <p>Also some messaging systems are built around it like <a href="http://resquework.org/">Resque</a>,
 <a href="http://restmq.com/">RestMQ</a>, <a href="http://python-rq.org/">RQ</a>.</p>
 
-<h3 id="apache-samzahttpsamzaapacheorg"><a href="http://samza.apache.org/">Apache Samza</a></h3>
+<h3 id="apache-samza-linkhttpsamzaapacheorg">Apache Samza (<a href="http://samza.apache.org/">link</a>)</h3>
 
 <p>Basically it is a database system with a pub/sub mechanism.
 Here’s a <a href="http://blog.confluent.io/2015/03/04/turning-the-database-inside-out-with-apache-samza/">very good explanation</a></p>
 
 <h2 id="without-broker">Without broker</h2>
 
-<h3 id="reactivexhttpreactivexio"><a href="http://reactivex.io/">ReactiveX</a></h3>
+<h3 id="reactivex-linkhttpreactivexio">ReactiveX (<a href="http://reactivex.io/">link</a>)</h3>
 
 <p>This is an implementation of Observer pattern on steroids.</p>
 
@@ -111,11 +142,11 @@ Here’s a <a href="http://blog.confluent.io/2015/03/04/turning-the-database-ins
 
 <p><a href="https://gist.github.com/staltz/868e7e9bc2a7b8c1f754">More about reactive programming</a></p>
 
-<h3 id="python-3-futureshttpsdocspythonorg3libraryconcurrentfutureshtml"><a href="https://docs.python.org/3/library/concurrent.futures.html">Python 3 Futures</a></h3>
+<h3 id="python-3-futures-linkhttpsdocspythonorg3libraryconcurrentfutureshtml">Python 3 Futures (<a href="https://docs.python.org/3/library/concurrent.futures.html">link</a>)</h3>
 
 <p>Part of Python 3 standard library (<a href="https://docs.python.org/3/library/asyncio.html">asyncio</a>).</p>
 
-<h3 id="tornado-webserverhttpwwwtornadoweborg"><a href="http://www.tornadoweb.org">Tornado Webserver</a></h3>
+<h3 id="tornado-webserver-linkhttpwwwtornadoweborg">Tornado Webserver (<a href="http://www.tornadoweb.org">link</a>)</h3>
 
 <p><a href="http://www.tornadoweb.org/en/stable/coroutine.html">It has some support for concurrency</a> (with own Futures mechanism).</p>
 
