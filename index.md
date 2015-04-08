@@ -5,5 +5,5 @@ title: R-n-d
 
 
 {% for post in site.posts %}
-* [{{ site.baseurl }}{{ post.title }}]({{ post.url }})
+* [{{ post.title }}]({{ site.baseurl }}{{ post.url }})
 {% endfor %}
